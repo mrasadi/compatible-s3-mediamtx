@@ -99,7 +99,7 @@ jobs:
           ls -lh mediamtx-linux-amd64.tar.gz*
       
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mediamtx-linux-amd64
           path: |
