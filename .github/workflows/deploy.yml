@@ -27,7 +27,10 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-
+          
+      - name: Generate assets
+        run: go generate ./...
+      
       - name: Run tests
         run: go test ./...
 
