@@ -95,13 +95,31 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_PORT: ${{ secrets.VPS_PORT }}
         run: |
-          set -e
+          set -Eeuo pipefail
+
+          test -n "$SSH_PRIVATE_KEY" || { echo "ERROR: VPS_SSH_KEY is empty"; exit 1; }
+          test -n "$VPS_HOST" || { echo "ERROR: VPS_HOST is empty"; exit 1; }
+          test -n "$VPS_PORT" || { echo "ERROR: VPS_PORT is empty"; exit 1; }
+
+          echo "Configuring SSH for host: $VPS_HOST on port: $VPS_PORT"
+
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
+
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/mediamtx_deploy
           chmod 600 ~/.ssh/mediamtx_deploy
-          ssh-keyscan -p "$VPS_PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+
+          echo "Scanning SSH host key..."
+          ssh-keyscan -T 15 -v -p "$VPS_PORT" "$VPS_HOST" > ~/.ssh/known_hosts
+
+          test -s ~/.ssh/known_hosts || {
+            echo "ERROR: SSH host key scan returned no keys"
+            exit 1
+          }
+
           chmod 600 ~/.ssh/known_hosts
+          echo "SSH configuration completed."
+          
       - name: Upload release
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
