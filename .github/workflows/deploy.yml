@@ -30,8 +30,17 @@ jobs:
 
       - name: Generate embedded assets
         run: |
-          cd internal/core && go generate
-          cd ../servers/hls && go generate
+          echo "Generating MediaMTX version..."
+          (cd internal/core && go generate -x)
+          test -s internal/core/VERSION
+
+          echo "Generating HLS assets..."
+          (cd internal/servers/hls && go generate -x)
+          test -s internal/servers/hls/hls.min.js
+
+          echo "Generated files:"
+          ls -lah internal/core/VERSION
+          ls -lah internal/servers/hls/hls.min.js
 
       - name: Run tests
         run: go test ./...
@@ -45,13 +54,6 @@ jobs:
         run: |
           chmod +x mediamtx
           tar -czf mediamtx-linux-amd64.tar.gz mediamtx
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mediamtx-linux-amd64
-          path: mediamtx-linux-amd64.tar.gz
-          retention-days: 7
 
   deploy:
     name: Deploy to VPS
