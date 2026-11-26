@@ -28,8 +28,10 @@ jobs:
           go-version-file: go.mod
           cache: true
           
-      - name: Generate assets
-        run: go generate ./...
+      - name: Generate embedded assets
+        run: |
+          cd internal/core && go generate
+          cd ../servers/hls && go generate
       
       - name: Run tests
         run: go test ./...

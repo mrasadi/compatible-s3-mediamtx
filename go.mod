@@ -1,6 +1,6 @@
 module github.com/bluenviron/mediamtx
 
-go 1.28.0
+go 1.27.0
 
 require (
 	code.cloudfoundry.org/bytefmt v0.99.0
