@@ -1,4 +1,4 @@
-name: Build and Deploy MediaMTX
+name: Build and Deploy MediaMTX PROD
 on:
   push:
     branches:
