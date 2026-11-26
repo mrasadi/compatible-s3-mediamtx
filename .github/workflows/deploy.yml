@@ -82,6 +82,7 @@ jobs:
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
+    environment: prod
     needs: build
     steps:
       - name: Download build artifact
