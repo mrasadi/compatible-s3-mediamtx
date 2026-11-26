@@ -3,12 +3,15 @@ package core
 import (
 	"context"
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/bluenviron/mediamtx/internal/conf"
 	"github.com/bluenviron/mediamtx/internal/defs"
 	"github.com/bluenviron/mediamtx/internal/logger"
+	"github.com/bluenviron/mediamtx/internal/recordingupload"
 )
 
 func newInternalUserIDs(count int) []uuid.UUID {
@@ -154,6 +157,42 @@ func (p *Core) doAPIConfigPathDelete(name string) (*conf.Conf, error) {
 // APIConfigSnapshot implements apiParent.
 func (p *Core) APIConfigSnapshot() *conf.Conf {
 	return p.apiConfigSnapshot()
+}
+
+// UploadRecording uploads a finalized recording segment when S3 upload is enabled.
+func (p *Core) UploadRecording(pathConf *conf.Path, pathName string, segmentPath string, duration time.Duration) {
+	uploadConf := p.apiConfigSnapshot().RecordingS3
+	if !uploadConf.Enabled {
+		return
+	}
+
+	p.recordingUploadWG.Add(1)
+	go func() {
+		defer p.recordingUploadWG.Done()
+
+		uploader, err := recordingupload.New(uploadConf)
+		if err != nil {
+			p.Log(logger.Error, "cannot create recording S3 uploader: %v", err)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		objectKey, err := uploader.UploadWithRetry(ctx, pathConf, pathName, segmentPath, duration)
+		cancel()
+
+		if err != nil {
+			p.Log(logger.Error, "recording S3 upload failed for %s: %v", segmentPath, err)
+			return
+		}
+
+		p.Log(logger.Info, "recording uploaded to S3: %s", objectKey)
+		if uploadConf.DeleteLocalAfterUpload {
+			err = os.Remove(segmentPath)
+			if err != nil {
+				p.Log(logger.Warn, "cannot delete uploaded recording %s: %v", segmentPath, err)
+			}
+		}
+	}()
 }
 
 // APIConfigGlobalPatch implements apiParent.

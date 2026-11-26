@@ -216,9 +216,10 @@ type Core struct {
 	api             *api.API
 	confWatcher     *confwatcher.ConfWatcher
 
-	confMutex       sync.RWMutex
-	conf            *conf.Conf
-	internalUserIDs []uuid.UUID
+	confMutex         sync.RWMutex
+	conf              *conf.Conf
+	internalUserIDs   []uuid.UUID
+	recordingUploadWG sync.WaitGroup
 
 	// in
 	chFatalError                   chan struct{}
@@ -1392,6 +1393,10 @@ func (p *Core) closeResources(newConf *conf.Conf) error {
 	if closePathManager && p.pathManager != nil {
 		p.pathManager.close()
 		p.pathManager = nil
+	}
+
+	if newConf == nil {
+		p.recordingUploadWG.Wait()
 	}
 
 	if closePlaybackServer && p.playbackServer != nil {

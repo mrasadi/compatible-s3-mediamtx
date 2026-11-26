@@ -7,6 +7,7 @@ import (
 	"maps"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -177,6 +178,14 @@ func (pm *pathManager) close() {
 // Log implements logger.Writer.
 func (pm *pathManager) Log(level logger.Level, format string, args ...any) {
 	pm.parent.Log(level, format, args...)
+}
+
+func (pm *pathManager) UploadRecording(pathConf *conf.Path, pathName string, segmentPath string, duration time.Duration) {
+	if parent, ok := pm.parent.(interface {
+		UploadRecording(*conf.Path, string, string, time.Duration)
+	}); ok {
+		parent.UploadRecording(pathConf, pathName, segmentPath, duration)
+	}
 }
 
 func (pm *pathManager) run() {

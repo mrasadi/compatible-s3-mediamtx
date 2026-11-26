@@ -636,6 +636,9 @@ components:
           type: string
           nullable: true
           deprecated: true
+        recordingS3:
+          $ref: "#/components/schemas/RecordingS3"
+          description: Recording S3
         rtcpAddress:
           type: string
         rtmp:
@@ -2030,6 +2033,32 @@ components:
           description: Duration in seconds. Null when unavailable or when the format is MPEG-TS.
           nullable: true
         start:
+          type: string
+
+    RecordingS3:
+      type: object
+      properties:
+        accessKey:
+          type: string
+        bucket:
+          type: string
+        deleteLocalAfterUpload:
+          type: boolean
+        enabled:
+          type: boolean
+        endpoint:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        objectKey:
+          type: string
+        prefix:
+          type: string
+        region:
+          type: string
+        secretKey:
           type: string
 
     RTMPConn:

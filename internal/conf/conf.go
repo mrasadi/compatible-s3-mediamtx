@@ -325,6 +325,9 @@ type Conf struct {
 	PlaybackAllowOrigins   []string   `json:"playbackAllowOrigins"`
 	PlaybackTrustedProxies IPNetworks `json:"playbackTrustedProxies"`
 
+	// Recording S3
+	RecordingS3 RecordingS3 `json:"recordingS3"`
+
 	// RTSP server
 	RTSP                  bool             `json:"rtsp"`
 	RTSPDisable           *bool            `json:"rtspDisable,omitempty" deprecated:"true"`
@@ -479,6 +482,8 @@ func (conf *Conf) setDefaults() {
 	conf.PlaybackServerKey = "server.key"
 	conf.PlaybackServerCert = "server.crt"
 	conf.PlaybackAllowOrigins = []string{"*"}
+	conf.RecordingS3.Region = "us-east-1"
+	conf.RecordingS3.Metadata = make(map[string]string)
 
 	// RTSP server
 	conf.RTSP = true
@@ -633,6 +638,10 @@ func (conf Conf) Clone() *Conf {
 func (conf *Conf) validate(l logger.Writer) error {
 	if l == nil {
 		l = &nilLogger{}
+	}
+
+	if err := conf.RecordingS3.validate(); err != nil {
+		return err
 	}
 
 	// General (deprecated params)

@@ -203,6 +203,10 @@ var structs = []struct {
 		typ:          reflect.TypeOf(defs.APIRecordingSegment{}),
 	},
 	{
+		externalName: "RecordingS3",
+		typ:          reflect.TypeOf(conf.RecordingS3{}),
+	},
+	{
 		externalName: "RTMPConn",
 		typ:          reflect.TypeOf(defs.APIRTMPConn{}),
 	},
@@ -373,6 +377,14 @@ func goTypeToOpenAPI(rt reflect.Type) (openAPIProperty, error) {
 		}
 
 		return openAPIProperty{Type: "array", Items: &items}, nil
+
+	case rt.Kind() == reflect.Map:
+		additionalProperties, err := goTypeToOpenAPI(rt.Elem())
+		if err != nil {
+			return openAPIProperty{}, err
+		}
+
+		return openAPIProperty{Type: "object", AdditionalProperties: &additionalProperties}, nil
 
 	default:
 		return openAPIProperty{}, fmt.Errorf("unhandled type: %s", rt.String())

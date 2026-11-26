@@ -232,6 +232,14 @@ func restoreRedactedGlobalValues(values any, old *Conf) {
 	rv := reflect.ValueOf(values).Elem()
 
 	restoreStringField(rv, "HLSCDNSecret", old.HLSCDNSecret)
+	recordingS3 := rv.FieldByName("RecordingS3")
+	if recordingS3.IsValid() && recordingS3.Kind() == reflect.Pointer && !recordingS3.IsNil() {
+		recordingS3 = recordingS3.Elem()
+		accessKey := recordingS3.FieldByName("AccessKey")
+		accessKey.SetString(restoreSecret(accessKey.String(), old.RecordingS3.AccessKey))
+		secretKey := recordingS3.FieldByName("SecretKey")
+		secretKey.SetString(restoreSecret(secretKey.String(), old.RecordingS3.SecretKey))
+	}
 	restoreURLField(rv, "AuthHTTPAddress", old.AuthHTTPAddress)
 	restoreURLField(rv, "AuthJWTJWKS", old.AuthJWTJWKS)
 	restoreURLField(rv, "ExternalAuthenticationURL", old.AuthHTTPAddress)
@@ -269,6 +277,8 @@ func Redact(c *Conf) *Conf {
 	}
 
 	c.HLSCDNSecret = redactSecretString(c.HLSCDNSecret)
+	c.RecordingS3.AccessKey = redactSecretString(c.RecordingS3.AccessKey)
+	c.RecordingS3.SecretKey = redactSecretString(c.RecordingS3.SecretKey)
 
 	if c.WebRTCICEServers != nil {
 		for i, server := range *c.WebRTCICEServers {

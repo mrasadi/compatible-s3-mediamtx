@@ -33,6 +33,7 @@ func emptyTimer() *time.Timer {
 
 type pathParent interface {
 	logger.Writer
+	UploadRecording(*conf.Path, string, string, time.Duration)
 	setPathAvailable(*path)
 	setPathNotAvailable(*path)
 	closePathIfIdle(*path)
@@ -1057,6 +1058,8 @@ func (pa *path) setNotAvailable() {
 }
 
 func (pa *path) startRecording() {
+	recordingConf := pa.conf.Clone()
+	pathName := pa.name
 	pa.recorder = &recorder.Recorder{
 		PathFormat:      pa.conf.RecordPath,
 		Format:          pa.conf.RecordFormat,
@@ -1082,6 +1085,8 @@ func (pa *path) startRecording() {
 			}
 		},
 		OnSegmentComplete: func(segmentPath string, segmentDuration time.Duration) {
+			pa.parent.UploadRecording(recordingConf, pathName, segmentPath, segmentDuration)
+
 			if pa.conf.RunOnRecordSegmentComplete != "" {
 				env := pa.ExternalCmdEnv()
 				env["MTX_SEGMENT_PATH"] = segmentPath

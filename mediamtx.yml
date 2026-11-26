@@ -232,6 +232,35 @@ playbackAllowOrigins: ["*"]
 playbackTrustedProxies: []
 
 ###############################################
+# Global settings -> Recording S3
+
+# Upload completed recording segments to S3-compatible object storage.
+# Credentials are never written to logs and are redacted from the Control API.
+recordingS3:
+  enabled: false
+  # S3 endpoint URL, for example https://s3.amazonaws.com or http://localhost:9000.
+  endpoint:
+  # Existing bucket to receive completed recording segments.
+  bucket:
+  # S3 region. Defaults to us-east-1 when omitted.
+  region: us-east-1
+  # Static S3 credentials. These can also be set with MTX_RECORDINGS3_ACCESSKEY
+  # and MTX_RECORDINGS3_SECRETKEY environment variables.
+  accessKey:
+  secretKey:
+  # Optional prefix prepended to every object key.
+  prefix:
+  # Optional key template. The recording format extension is added automatically.
+  # Available variables match recordPath: %path, %Y %m %d %H %M %S %f %z %s.
+  objectKey:
+  # Optional static metadata attached to every uploaded object. Values can use
+  # the same variables as objectKey.
+  # metadata:
+  #   deployment: west
+  # Remove the local segment only after its upload succeeds.
+  deleteLocalAfterUpload: false
+
+###############################################
 # Global settings -> RTSP server
 
 # Enable the RTSP server, which allows to publish and read streams with the RTSP protocol.
