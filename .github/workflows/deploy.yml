@@ -1,4 +1,4 @@
-name: Build and Release MediaMTX
+name: Build and Release MediaMTX PROD
 
 on:
   push:
@@ -32,11 +32,11 @@ jobs:
       - name: Verify Go environment
         run: |
           go version
-          go env GOOS GOARCH
+          go env GOOS GOARCH GOMOD
 
       - name: Generate embedded assets
         run: |
-          set -euo pipefail
+          set -e
 
           echo "Generating MediaMTX version..."
 
@@ -56,15 +56,25 @@ jobs:
 
           test -s internal/servers/hls/hls.min.js
 
-          echo "Generated assets successfully."
+          echo "Generated assets:"
+          ls -lah internal/core/VERSION
+          ls -lah internal/servers/hls/hls.min.js
+
+      - name: Verify embedded assets
+        run: |
+          test -s internal/core/VERSION
+          test -s internal/servers/hls/hls.min.js
+
+          echo "All embedded assets are present."
+
+      - name: Run generate for all packages
+        run: go generate ./...
 
       - name: Run tests
         run: go test ./...
 
       - name: Build MediaMTX
         run: |
-          set -euo pipefail
-
           CGO_ENABLED=0 \
           GOOS=linux \
           GOARCH=amd64 \
@@ -75,20 +85,18 @@ jobs:
 
       - name: Verify binary
         run: |
-          chmod +x mediamtx
           file mediamtx
+          chmod +x mediamtx
           ./mediamtx --version
 
-      - name: Package release
+      - name: Package binary
         run: |
-          set -euo pipefail
-
           tar -czf mediamtx-linux-amd64.tar.gz mediamtx
 
           sha256sum mediamtx-linux-amd64.tar.gz \
             > mediamtx-linux-amd64.tar.gz.sha256
 
-          ls -lah mediamtx-linux-amd64.tar.gz*
+          ls -lh mediamtx-linux-amd64.tar.gz*
       
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -106,7 +114,7 @@ jobs:
           name: MediaMTX ${{ github.sha }}
           target_commitish: ${{ github.sha }}
           body: |
-            Automated MediaMTX production build.
+            Automated MediaMTX production release.
 
             Commit: ${{ github.sha }}
             Branch: master
