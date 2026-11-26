@@ -48,8 +48,13 @@ jobs:
           test -s internal/core/VERSION
           test -s internal/servers/hls/hls.min.js
           echo "All embedded assets are present."
+      
+      - name: Run generate for all packages
+        run: go generate ./...
+
       - name: Run tests
         run: go test ./...
+      
       - name: Build MediaMTX
         run: |
           CGO_ENABLED=0 \
