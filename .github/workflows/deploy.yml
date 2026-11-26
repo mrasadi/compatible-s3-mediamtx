@@ -1,0 +1,105 @@
+name: Build and Deploy MediaMTX
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mediamtx-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Linux AMD64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build MediaMTX
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+            go build -trimpath -ldflags="-s -w" -o mediamtx .
+
+      - name: Package binary
+        run: |
+          chmod +x mediamtx
+          tar -czf mediamtx-linux-amd64.tar.gz mediamtx
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mediamtx-linux-amd64
+          path: mediamtx-linux-amd64.tar.gz
+          retention-days: 7
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mediamtx-linux-amd64
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/mediamtx_deploy
+          chmod 600 ~/.ssh/mediamtx_deploy
+
+          ssh-keyscan -p "$VPS_PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload release
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          RELEASE_ID="${GITHUB_SHA}"
+
+          ssh -i ~/.ssh/mediamtx_deploy \
+            -p "$VPS_PORT" \
+            "$VPS_USER@$VPS_HOST" \
+            "mkdir -p /opt/mediamtx/releases/$RELEASE_ID"
+
+          scp -i ~/.ssh/mediamtx_deploy \
+            -P "$VPS_PORT" \
+            mediamtx-linux-amd64.tar.gz \
+            "$VPS_USER@$VPS_HOST:/opt/mediamtx/releases/$RELEASE_ID/"
+
+      - name: Deploy release
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          RELEASE_ID="${GITHUB_SHA}"
+
+          ssh -i ~/.ssh/mediamtx_deploy \
+            -p "$VPS_PORT" \
+            "$VPS_USER@$VPS_HOST" \
+            "sudo /usr/local/sbin/deploy-mediamtx '$RELEASE_ID'"
